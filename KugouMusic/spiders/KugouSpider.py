@@ -15,12 +15,14 @@ downloadUrl = 'http://trackercdn.kugou.com/i/?cmd=4&hash=%s&key=%s&pid=1&forceDo
 class KugouSpider(Spider):
     name = "kugou"
 
+    # 计算key值，下载用
     def getKey(self, hashstr):
         hl = hashlib.md5()
         hl.update((hashstr+'kgcloud').encode("utf-8"))
         result = hl.hexdigest()
         return result
 
+    # 请求歌曲列表
     def start_requests(self):
         # 指定 parse 作为回调函数并返回 Requests 请求对象
         for page in range(1, 2):
@@ -38,11 +40,12 @@ class KugouSpider(Spider):
             item['singer_name'] = info['singername']
             item['album_name'] = info['album_name']
             item['file_name'] = info['filename']
+            # 如果没有320K的歌就跳过这部分
             if info['320hash'] != '':
                 item['hash_320'] = info['320hash']
                 item['key_320'] = self.getKey(item['hash_320'])
                 yes_320 = True
-
+            # 如果没有SQ的歌就跳过这部分
             if info['sqhash'] != '':
                 item['hash_sq'] = info['sqhash']
                 item['key_sq'] = self.getKey(item['hash_sq'])
@@ -55,10 +58,12 @@ class KugouSpider(Spider):
             else:
                 yield item
 
+    # 320K
     def detail_parse(self, response):
         # 接收上级已爬取的数据
         item = response.meta['item']
         yes_sq=response.meta['yes_sq']
+
         body = json.loads(response.body_as_unicode())
         item['filesize_320'] = body['fileSize']
         item['ext_320'] = body['extName']
@@ -70,9 +75,11 @@ class KugouSpider(Spider):
         else:
             yield item
 
+    # SQ
     def detail_parse2(self, response):
         # 接收上级已爬取的数据
         item = response.meta['item']
+
         body = json.loads(response.body_as_unicode())
         item['filesize_sq'] = body['fileSize']
         item['ext_sq'] = body['extName']
